@@ -50,7 +50,25 @@ class DragonBallEnv(Env):
         nL_cost = {b"F": 10.0, b"H": np.inf, b"T": 3.0, b"A": 2.0, b"L": 1.0, b"S": 1.0, b"G": 1.0, b"D": 1}
         nS = nrow * ncol
 
+
+        """
+        self.dic = {
+        (0, False, False): {0: [], 1: [], 2: [], 3: []},
+        (1, False, False): {0: [], 1: [], 2: [], 3: []},
+        # ... (repeating for s from 2 to 15)
+        (15, False, False): {0: [], 1: [], 2: [], 3: []}
+        }
+        """
         self.dic = {(s, False, False): {a: [] for a in range(nA)} for s in range(nS)}
+
+        """
+        self.P = {
+        0: {0: [], 1: [], 2: [], 3: []},
+        1: {0: [], 1: [], 2: [], 3: []},
+        # ... (repeating for s from 2 to 15)
+        15: {0: [], 1: [], 2: [], 3: []}
+        }
+        """
         self.P = {s[0]: {a: [] for a in range(nA)} for s in self.dic}
 
         for row in range(nrow):
