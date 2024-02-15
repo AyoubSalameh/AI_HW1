@@ -20,6 +20,8 @@ class Node:
             self.total_cost += parentNode.total_cost
 
     # TODO: check if we need a printing method.
+    def __repr__(self) -> str:
+        return f"{self.state}"
 
 
 class Agent:
@@ -54,35 +56,44 @@ class BFSAgent(Agent):
         self.env = env
         self.env.reset()
         # open contains nodes
-        open: deque = deque()
+        open = []
         # close contains states
-        close = set()
+        close = []
 
-        curr_state = env.get_initial_state()
+        curr_state = self.env.get_initial_state()
         # TODO: check if cost for initial state is 0 or 1
-        current_node = Node(curr_state, None, 1)
-        open.append(current_node)
+        curr_node = Node(curr_state, None, 0, False, None)
+        open.append(curr_node)
 
         # initial state will not be the final goal since we are promised to have 2 balls to collect.
 
         while len(open) != 0:
-            curr_node = open.pop()
-            close.add(curr_node.state)
-            # def __init__(self, state, step, cost=0, terminated=False, parentNode=None) -> None:
-            for action, (succ_state, cost, terminated) in env.succ(curr_state).items():
-                if succ_state[0] == self.env.d1[0]:
-                    succ_state[1] = True
-                if succ_state[0] == self.env.d2[0]:
-                    succ_state[1] = True
+            curr_node = open.pop(0)
+            print("curr node:", curr_node)
+            close.append(curr_node.state)
+            for action, (succ_state, cost, terminated) in env.succ(curr_node.state).items():
                 succ_node = Node(succ_state, action, cost, terminated, curr_node)
-                if succ_state not in close and succ_node not in open:
-                    if self.env.is_final_state(succ_state):
+                succ_node.state = (succ_node.state[0], curr_node.state[1], curr_node.state[2])
+                #print("operation " + str(action))
+                """checking if we reached a db """
+                if succ_state[0] == self.env.d1[0]:
+                    succ_node.state = (succ_node.state[0], True, curr_node.state[2])
+                if succ_state[0] == self.env.d2[0]:
+                    succ_node.state = (succ_node.state[0], curr_node.state[1], True)
+
+
+
+                if (succ_node.state not in close) and (succ_node.state not in [ item.state for item in open]):
+                    if self.env.is_final_state(succ_node.state):
+                        print("************FINAL STATE*************" + str(succ_state))
                         (path, total_cost) = self.solution(succ_node)
-                        return path, total_cost, len(close)
+                        return (path, total_cost, len(close))
                     #not a hole and not same state
-                    if terminated or succ_state == curr_state:
+                    if terminated or succ_state == curr_node.state:
                         continue
                     open.append(succ_node)
+
+        return ([1],1,1)
 
 
 class WeightedAStarAgent():
