@@ -70,9 +70,19 @@ class BFSAgent(Agent):
             close.add(curr_node.state)
             # def __init__(self, state, step, cost=0, terminated=False, parentNode=None) -> None:
             for action, (succ_state, cost, terminated) in env.succ(curr_state).items():
+                if succ_state[0] == self.env.d1[0]:
+                    succ_state[1] = True
+                if succ_state[0] == self.env.d2[0]:
+                    succ_state[1] = True
                 succ_node = Node(succ_state, action, cost, terminated, curr_node)
                 if succ_state not in close and succ_node not in open:
-                    self.env.step(action)
+                    if self.env.is_final_state(succ_state):
+                        (path, total_cost) = self.solution(succ_node)
+                        return path, total_cost, len(close)
+                    #not a hole and not same state
+                    if terminated or succ_state == curr_state:
+                        continue
+                    open.append(succ_node)
 
 
 class WeightedAStarAgent():
