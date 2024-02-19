@@ -75,6 +75,9 @@ class BFSAgent(Agent):
             # print("curr node:", curr_node)
             self.close.append(curr_node.state)
             for action, (succ_state, cost, terminated) in env.succ(curr_node.state).items():
+                #not adding to open in case we are stuck in a hole
+                if succ_state == None:
+                    continue
                 succ_node = Node(succ_state, action, cost, terminated, curr_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
 
@@ -84,7 +87,10 @@ class BFSAgent(Agent):
                         (path, total_cost) = self.solution(succ_node)
                         return path, total_cost, len(self.close)
 
-                    if terminated or succ_state == curr_node.state:
+                    #if we are in the same state, continue
+                    #if we are in cell number that is the same cell number as final state, continue
+                    #maybe we should change succ_state to succ_node.state
+                    if succ_state == curr_node.state or (succ_state[0] in [item[0] for item in self.env.get_goal_states()]):
                         continue
 
                     self.open.append(succ_node)
