@@ -100,17 +100,31 @@ class BFSAgent(Agent):
 
 class WeightedAStarAgent():
     def __init__(self) -> None:
-        raise NotImplementedError
+        super().__init__()
+        #might need to add more things
+
+    def initialize(self, env) -> None:
+        self.env = env
+        self.env.reset()
+        #might need to add more things
 
     ''' implementing a method that calculates the heuristic value for each state, by searching for the min manhattan distance between
     need to think abt what we can do if we got the ball but h is to the ball we just got'''
-    def calculate_hueristic(self, node: Node):
-        ''' in order to calculate the h, we need to know where d1, d2, g are
-        therefore, maybe we need to find their location by going over the whole board, if
-        it isnt know where they are.
+    def calculate_heuristic(self, node: Node):
 
-        SORRY TAL :('''
+        #getting the coordinates for each needed point.
+        srow, scol = self.env.to_row_col(node.state)
+        d1row, d1col = self.env.to_row_col(self.env.d1)
+        d2row, d2col = self.env.to_row_col(self.env.d2)
 
+        #min( |Px-D1x| + |Py - D1y|, |Px-D2x| + |Py - D2y|)
+        ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
+        #goal is given as a list
+        for state in self.env.goals:
+            grow, gcol = self.env.to_row_col(state)
+            ret = min(ret + abs(srow - grow) + abs(scol - gcol))
+
+        return ret
 
 
     def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], float, int]:
