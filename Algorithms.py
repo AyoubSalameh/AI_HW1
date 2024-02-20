@@ -102,7 +102,8 @@ class WeightedAStarAgent():
     def __init__(self) -> None:
         raise NotImplementedError
 
-    ''' implementing a method that calculates the heuristic value for each state, by searching for the min manhattan distance between'''
+    ''' implementing a method that calculates the heuristic value for each state, by searching for the min manhattan distance between
+    need to think abt what we can do if we got the ball but h is to the ball we just got'''
     def calculate_hueristic(self):
 
 
