@@ -104,7 +104,13 @@ class WeightedAStarAgent():
 
     ''' implementing a method that calculates the heuristic value for each state, by searching for the min manhattan distance between
     need to think abt what we can do if we got the ball but h is to the ball we just got'''
-    def calculate_hueristic(self):
+    def calculate_hueristic(self, node: Node):
+        ''' in order to calculate the h, we need to know where d1, d2, g are
+        therefore, maybe we need to find their location by going over the whole board, if
+        it isnt know where they are.
+
+        SORRY TAL :('''
+
 
 
     def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], float, int]:
