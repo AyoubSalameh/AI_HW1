@@ -102,6 +102,10 @@ class WeightedAStarAgent():
     def __init__(self) -> None:
         raise NotImplementedError
 
+    ''' implementing a method that calculates the heuristic value for each state, by searching for the min manhattan distance between'''
+    def calculate_hueristic(self):
+
+
     def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], float, int]:
         raise NotImplementedError
 
