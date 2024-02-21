@@ -8,7 +8,7 @@ import heapdict
 
 
 class Node:
-    def __init__(self, state, step=None, cost=0, terminated=False, parent_node=None) -> None:
+    def __init__(self, state, step=None, cost=0, terminated=False, parent_node=None, h=0, g=0, f=0 ) -> None:
         if parent_node is not None:
             self.state = (state[0], parent_node.state[1], parent_node.state[2])
         else:
@@ -21,6 +21,10 @@ class Node:
         self.total_cost = cost
         if parent_node is not None:
             self.total_cost += parent_node.total_cost
+
+        self.h = h
+        self.f = f
+        self.g = g
 
     def __repr__(self) -> str:
         """
@@ -42,6 +46,12 @@ class Agent:
             final_node = final_node.parentNode
         actions.reverse()
         return actions, total_cost
+    
+    def update_node_state_if_db(self, node: Node, curr_cell: int) -> None:
+        if curr_cell == self.env.d1[0]:
+            node.state = (node.state[0], True, node.state[2])
+        if curr_cell == self.env.d2[0]:
+            node.state = (node.state[0], node.state[1], True)
 
 
 class BFSAgent(Agent):
@@ -50,11 +60,7 @@ class BFSAgent(Agent):
         self.open: List[Node] = []  # open contains nodes
         self.close: List[Tuple[int, int, int]] = []  # close contains states
 
-    def update_node_state_if_db(self, node: Node, curr_cell: int) -> None:
-        if curr_cell == self.env.d1[0]:
-            node.state = (node.state[0], True, node.state[2])
-        if curr_cell == self.env.d2[0]:
-            node.state = (node.state[0], node.state[1], True)
+   
 
     def initialize(self, env) -> None:
         self.env = env
@@ -98,20 +104,26 @@ class BFSAgent(Agent):
         return None
 
 
-class WeightedAStarAgent():
+class WeightedAStarAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
+        self.open # open contains nodes hd[Node1] = priority1
+        self.close # close contains states
+        self.expanded = 0
         #might need to add more things
 
     def initialize(self, env) -> None:
         self.env = env
         self.env.reset()
+        self.expanded = 0
+        self.open = heapdict()  # open contains nodes hd[Node1] = priority1
+        self.close = set() # close contains states
         #might need to add more things
+
 
     ''' implementing a method that calculates the heuristic value for each state, by searching for the min manhattan distance between
     need to think abt what we can do if we got the ball but h is to the ball we just got'''
     def calculate_heuristic(self, node: Node):
-
         #getting the coordinates for each needed point.
         srow, scol = self.env.to_row_col(node.state)
         d1row, d1col = self.env.to_row_col(self.env.d1)
@@ -122,13 +134,47 @@ class WeightedAStarAgent():
         #goal is given as a list
         for state in self.env.goals:
             grow, gcol = self.env.to_row_col(state)
-            ret = min(ret + abs(srow - grow) + abs(scol - gcol))
+            ret = min(ret , abs(srow - grow) + abs(scol - gcol))
 
         return ret
 
 
     def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], float, int]:
-        raise NotImplementedError
+        self.initialize(env)
+        initial_state = self.env.get_initial_state()
+
+        h = self.calculate_heuristic(initial_state)
+        f = (h_weight*h) + (1-h_weight)*0
+
+        initial_node = Node(initial_state, h=h, f=f)
+        self.update_node_state_if_db(initial_node, initial_state[0])
+        self.open[initial_node] = (initial_node.f, initial_node.state[0])
+
+        while len(self.open) > 0:
+            current_node = self.open.popitem()[0] # popitem():Remove and return the (key, priority) pair 
+            self.close.add(current_node.state)
+
+            #should this be inside or outside the for?
+            if self.env.is_final_state(current_node.state):
+                # print("************FINAL STATE*************" + str(succ_node.state))
+                (path, total_cost) = self.solution(current_node)
+                return path, total_cost, len(expanded)
+            
+            expanded = expanded + 1
+            for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
+                #not adding to open in case we are stuck in a hole
+                if succ_state == None:
+                    continue
+
+                succ_node = Node(succ_state, action, cost, terminated, current_node)
+                self.update_node_state_if_db(succ_node, succ_state[0])
+                succ_node.h = self.calculate_heuristic(succ_state)
+                succ_node.g = current_node.g + cost
+                succ_node.f = (h_weight*h) + (1-h_weight)*succ_node.total_cost
+                # TBD
+                
+        return None
+
 
 
 class AStarEpsilonAgent():
