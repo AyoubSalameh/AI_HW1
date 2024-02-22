@@ -107,8 +107,8 @@ class BFSAgent(Agent):
 class WeightedAStarAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
-        self.open # open contains nodes hd[Node1] = priority1
-        self.close # close contains states
+        self.open = [] # open contains nodes hd[Node1] = priority1
+        self.close = set() # close contains states
         self.expanded = 0
         #might need to add more things
 
@@ -116,25 +116,35 @@ class WeightedAStarAgent(Agent):
         self.env = env
         self.env.reset()
         self.expanded = 0
-        self.open = heapdict()  # open contains nodes hd[Node1] = priority1
+        self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
         self.close = set() # close contains states
         #might need to add more things
 
 
     ''' implementing a method that calculates the heuristic value for each state, by searching for the min manhattan distance between
     need to think abt what we can do if we got the ball but h is to the ball we just got'''
-    def calculate_heuristic(self, node: Node):
+    def calculate_heuristic(self, state: Tuple[int, int, int]):
         #getting the coordinates for each needed point.
-        srow, scol = self.env.to_row_col(node.state)
+        srow, scol = self.env.to_row_col(state)
         d1row, d1col = self.env.to_row_col(self.env.d1)
         d2row, d2col = self.env.to_row_col(self.env.d2)
+        ret = 0
 
-        #min( |Px-D1x| + |Py - D1y|, |Px-D2x| + |Py - D2y|)
-        ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
-        #goal is given as a list
-        for state in self.env.goals:
-            grow, gcol = self.env.to_row_col(state)
-            ret = min(ret , abs(srow - grow) + abs(scol - gcol))
+        #d1 collected but d2 not
+        if state[1] == True and state[2] == False:
+            ret = abs(srow -d2row) + abs(scol -d2col)
+        #the opposite
+        if state[1] == False and state[2] == True:
+            ret = abs(srow -d1row) + abs(scol - d1col)
+        #neither collected
+        if state[1] == False and state[2] == False:
+            ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
+
+        else:
+            #goal is given as a list
+            for state in self.env.goals:
+                grow, gcol = self.env.to_row_col(state)
+                ret = min(ret, abs(srow - grow) + abs(scol - gcol))
 
         return ret
 
@@ -158,9 +168,13 @@ class WeightedAStarAgent(Agent):
             if self.env.is_final_state(current_node.state):
                 # print("************FINAL STATE*************" + str(succ_node.state))
                 (path, total_cost) = self.solution(current_node)
-                return path, total_cost, len(expanded)
-            
-            expanded = expanded + 1
+                return path, total_cost, len(self.close)
+
+            #if it is g but didnt collect all dragon balls, add to close and dont look at his sons
+            if current_node.state[0] in [item[0] for item in self.env.get_goal_states()]:
+                continue
+
+            self.expanded = self.expanded + 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
                 #not adding to open in case we are stuck in a hole
                 if succ_state == None:
@@ -168,11 +182,22 @@ class WeightedAStarAgent(Agent):
 
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
-                succ_node.h = self.calculate_heuristic(succ_state)
+                #succ_node.h = self.calculate_heuristic(succ_state)
+                succ_node.h = self.calculate_heuristic(succ_node.state)
                 succ_node.g = current_node.g + cost
                 succ_node.f = (h_weight*h) + (1-h_weight)*succ_node.total_cost
                 # TBD
-                
+                #now we need to see if the succ_node.state is in open or not
+                if succ_node.state not in [item.state for item in self.open.keys()]:
+                    self.open[succ_node] = (succ_node.f, succ_node.state[0])
+                else:
+                    #iterating over the keys to find the state
+                    for item in self.open.keys():
+                        if item.state == succ_node.state and item.f > succ_node.f:
+                            open.pop(item)
+                            open[succ_node] = (succ_node.f, succ_node.state[0])
+
+
         return None
 
 
