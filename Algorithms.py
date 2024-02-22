@@ -166,6 +166,8 @@ class WeightedAStarAgent(Agent):
 
             #should this be inside or outside the for?
             if self.env.is_final_state(current_node.state):
+                for state in self.close:
+                    print(state)
                 # print("************FINAL STATE*************" + str(succ_node.state))
                 (path, total_cost) = self.solution(current_node)
                 return path, total_cost, len(self.close)
