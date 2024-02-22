@@ -134,10 +134,10 @@ class WeightedAStarAgent(Agent):
         if state[1] == True and state[2] == False:
             ret = abs(srow -d2row) + abs(scol -d2col)
         #the opposite
-        if state[1] == False and state[2] == True:
+        elif state[1] == False and state[2] == True:
             ret = abs(srow -d1row) + abs(scol - d1col)
         #neither collected
-        if state[1] == False and state[2] == False:
+        elif state[1] == False and state[2] == False:
             ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
 
         else:
@@ -161,7 +161,7 @@ class WeightedAStarAgent(Agent):
         self.open[initial_node] = (initial_node.f, initial_node.state[0])
 
         while len(self.open) > 0:
-            current_node = self.open.popitem()[0] # popitem():Remove and return the (key, priority) pair 
+            current_node = self.open.popitem()[0] # popitem():Remove and return the (key, priority) pair
             self.close.add(current_node.state)
 
             #should this be inside or outside the for?
@@ -187,7 +187,7 @@ class WeightedAStarAgent(Agent):
                 #succ_node.h = self.calculate_heuristic(succ_state)
                 succ_node.h = self.calculate_heuristic(succ_node.state)
                 succ_node.g = current_node.g + cost
-                succ_node.f = (h_weight*h) + (1-h_weight)*succ_node.total_cost
+                succ_node.f = (h_weight*h) + (1-h_weight)*succ_node.g
                 # TBD
                 #now we need to see if the succ_node.state is in open or not
                 if succ_node.state not in [item.state for item in self.open.keys()]:
