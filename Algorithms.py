@@ -166,24 +166,20 @@ class WeightedAStarAgent(Agent):
 
             #should this be inside or outside the for?
             if self.env.is_final_state(current_node.state):
+                
                 keys = list(self.close)
                 keys.sort()
-                for item in self.close:
+                for item in keys:
                     print(item)
                 # print("************FINAL STATE*************" + str(succ_node.state))
                 (path, total_cost) = self.solution(current_node)
                 return path, total_cost, len(self.close)
 
-            ''' 
-            #if it is g but didnt collect all dragon balls, add to close and dont look at his sons
-            if current_node.state[0] in [item[0] for item in self.env.get_goal_states()]:
-                continue
-                '''
 
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
                 #not adding to open in case we are stuck in a hole
-                if succ_state == None:
-                    continue
+                #if succ_state == None:
+                 #   continue
 
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
@@ -194,6 +190,9 @@ class WeightedAStarAgent(Agent):
                 succ_node.f = (h_weight*h) + (1-h_weight)*succ_node.total_cost
                 # TBD
 
+                # if it is goal but didnt collect all dragon balls, add to close and dont look at his sons
+                if terminated is True and self.env.is_final_state(succ_node.state) is False:
+                    continue
 
                 #now we need to see if the succ_node.state is in open or not
                 if succ_node.state not in [item.state for item in self.open.keys()]:
