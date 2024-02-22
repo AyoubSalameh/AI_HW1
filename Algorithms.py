@@ -107,7 +107,7 @@ class BFSAgent(Agent):
 class WeightedAStarAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
-        self.open = [] # open contains nodes hd[Node1] = priority1
+        self.open = heapdict.heapdict() # open contains nodes hd[Node1] = priority1
         self.close = set() # close contains states
         self.expanded = 0
         #might need to add more things
@@ -166,17 +166,20 @@ class WeightedAStarAgent(Agent):
 
             #should this be inside or outside the for?
             if self.env.is_final_state(current_node.state):
-                for state in self.close:
-                    print(state)
+                keys = list(self.close)
+                keys.sort()
+                for item in self.close:
+                    print(item)
                 # print("************FINAL STATE*************" + str(succ_node.state))
                 (path, total_cost) = self.solution(current_node)
                 return path, total_cost, len(self.close)
 
+            ''' 
             #if it is g but didnt collect all dragon balls, add to close and dont look at his sons
             if current_node.state[0] in [item[0] for item in self.env.get_goal_states()]:
                 continue
+                '''
 
-            self.expanded = self.expanded + 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
                 #not adding to open in case we are stuck in a hole
                 if succ_state == None:
@@ -187,8 +190,11 @@ class WeightedAStarAgent(Agent):
                 #succ_node.h = self.calculate_heuristic(succ_state)
                 succ_node.h = self.calculate_heuristic(succ_node.state)
                 succ_node.g = current_node.g + cost
-                succ_node.f = (h_weight*h) + (1-h_weight)*succ_node.g
+                #changed succ_node.g to succ_node.total_cost
+                succ_node.f = (h_weight*h) + (1-h_weight)*succ_node.total_cost
                 # TBD
+
+
                 #now we need to see if the succ_node.state is in open or not
                 if succ_node.state not in [item.state for item in self.open.keys()]:
                     self.open[succ_node] = (succ_node.f, succ_node.state[0])
