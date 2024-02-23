@@ -8,7 +8,7 @@ import heapdict
 
 
 class Node:
-    def __init__(self, state, step=None, cost=0, terminated=False, parent_node=None, h=0, g=0, f=0 ) -> None:
+    def __init__(self, state, step=None, cost=0, terminated=False, parent_node=None, h=0, f=0 ) -> None:
         if parent_node is not None:
             self.state = (state[0], parent_node.state[1], parent_node.state[2])
         else:
@@ -24,7 +24,6 @@ class Node:
 
         self.h = h
         self.f = f
-        self.g = g
 
     def __repr__(self) -> str:
         """
@@ -120,9 +119,6 @@ class WeightedAStarAgent(Agent):
         self.close = set() # close contains states
         #might need to add more things
 
-
-    ''' implementing a method that calculates the heuristic value for each state, by searching for the min manhattan distance between
-    need to think abt what we can do if we got the ball but h is to the ball we just got'''
     def calculate_heuristic(self, state: Tuple[int, int, int]):
         #getting the coordinates for each needed point.
         srow, scol = self.env.to_row_col(state)
@@ -164,51 +160,41 @@ class WeightedAStarAgent(Agent):
             current_node = self.open.popitem()[0] # popitem():Remove and return the (key, priority) pair
             self.close.add(current_node.state)
 
-            #we possible add the same node to open again
-            print("current note is", current_node.state)
-            #should this be inside or outside the for?
+            #in case we found a final state
             if self.env.is_final_state(current_node.state):
-                keys = list(self.close)
-                keys.sort()
-                for item in keys:
-                    if item[0] == 1 and item[1] == True:
-                        print("this shouldnt be printed")
-
-                # print("************FINAL STATE*************" + str(succ_node.state))
                 (path, total_cost) = self.solution(current_node)
-                return path, total_cost, len(self.close)
+                return path, total_cost, self.expanded      #len(self.close)?
 
-
+            self.expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
-
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
-                #succ_node.h = self.calculate_heuristic(succ_state)
                 succ_node.h = self.calculate_heuristic(succ_node.state)
-                succ_node.g = current_node.g + cost
-                #changed succ_node.g to succ_node.total_cost
-                succ_node.f = (h_weight*h) + (1-h_weight)*succ_node.total_cost
-                # TBD
 
-                # if it is goal but didnt collect all dragon balls, add to close and dont look at his sons
+                succ_node.f = (h_weight*succ_node.h) + (1-h_weight)*succ_node.total_cost
+
+                #if it is goal but didnt collect all dragon balls, or is hole. i guess
+                #TODO: check if we need to add these to closed. meaning if we need to exapnd them
                 if terminated is True and self.env.is_final_state(succ_node.state) is False:
                     continue
+                #maybe this line is useless
                 if succ_node.state == current_node.state:
                     continue
 
+                #if node is in close, no need to check the g again. heuristic is consistent
                 if succ_node.state in [item for item in self.close]:
                     continue
 
                 #now we need to see if the succ_node.state is in open or not
                 if succ_node.state not in [item.state for item in self.open.keys()]:
                     self.open[succ_node] = (succ_node.f, succ_node.state[0])
+                #if it is in open, check if f val is lower
                 else:
-                    #iterating over the keys to find the state
                     for item in self.open.keys():
                         if item.state == succ_node.state and item.f > succ_node.f:
-                            open.pop(item)
-                            open[succ_node] = (succ_node.f, succ_node.state[0])
-
+                            self.open.pop(item)
+                            self.open[succ_node] = (succ_node.f, succ_node.state[0])
+                            break
 
         return None
 
