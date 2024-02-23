@@ -128,14 +128,14 @@ class WeightedAStarAgent(Agent):
         srow, scol = self.env.to_row_col(state)
         d1row, d1col = self.env.to_row_col(self.env.d1)
         d2row, d2col = self.env.to_row_col(self.env.d2)
-        ret = 0
+        ret = np.inf
 
         #d1 collected but d2 not
         if state[1] == True and state[2] == False:
-            ret = abs(srow -d2row) + abs(scol -d2col)
+            ret = min(abs(srow -d2row) + abs(scol -d2col), ret)
         #the opposite
         elif state[1] == False and state[2] == True:
-            ret = abs(srow -d1row) + abs(scol - d1col)
+            ret = min(abs(srow -d1row) + abs(scol - d1col), ret)
         #neither collected
         elif state[1] == False and state[2] == False:
             ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
@@ -164,22 +164,22 @@ class WeightedAStarAgent(Agent):
             current_node = self.open.popitem()[0] # popitem():Remove and return the (key, priority) pair
             self.close.add(current_node.state)
 
+            #we possible add the same node to open again
+            print("current note is", current_node.state)
             #should this be inside or outside the for?
             if self.env.is_final_state(current_node.state):
-                
                 keys = list(self.close)
                 keys.sort()
                 for item in keys:
-                    print(item)
+                    if item[0] == 1 and item[1] == True:
+                        print("this shouldnt be printed")
+
                 # print("************FINAL STATE*************" + str(succ_node.state))
                 (path, total_cost) = self.solution(current_node)
                 return path, total_cost, len(self.close)
 
 
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
-                #not adding to open in case we are stuck in a hole
-                #if succ_state == None:
-                 #   continue
 
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
@@ -192,6 +192,11 @@ class WeightedAStarAgent(Agent):
 
                 # if it is goal but didnt collect all dragon balls, add to close and dont look at his sons
                 if terminated is True and self.env.is_final_state(succ_node.state) is False:
+                    continue
+                if succ_node.state == current_node.state:
+                    continue
+
+                if succ_node.state in [item for item in self.close]:
                     continue
 
                 #now we need to see if the succ_node.state is in open or not
