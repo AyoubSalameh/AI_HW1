@@ -101,10 +101,11 @@ class BFSAgent(Agent):
                     # if we are in the same state, continue
                     # if we are in cell number that is the same cell number as final state, continue
                     # maybe we should change succ_state to succ_node.state
-                    if succ_state == curr_node.state or (
+                    #commented out, we get 123 expanded
+                    '''if succ_state == curr_node.state or (
                             succ_state[0] in [item[0] for item in self.env.get_goal_states()]):
                         continue
-
+'''
                     self.open.append(succ_node)
 
         return None
