@@ -244,7 +244,7 @@ class AStarEpsilonAgent(Agent):
         for node in self.open.keys():
             if node.f <= (1 + epsilon) * min_f_val:
                 # https://piazza.com/class/lrurdsbmuiww0/post/111
-                focal[node] = node.total_cost
+                focal[node] = (node.total_cost, node.state[0])
         return focal
 
     def initialize(self, env) -> None:
