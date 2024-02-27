@@ -152,6 +152,10 @@ class WeightedAStarAgent(Agent):
 
         return ret
 
+    def is_hole(self, state: Tuple[int, bool, bool]) -> bool:
+        row, col = self.env.to_row_col(state)
+        return self.env.desc[row, col] == b"H"
+
     def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], float, int]:
         self.initialize(env)
         initial_state = self.env.get_initial_state()
@@ -160,8 +164,9 @@ class WeightedAStarAgent(Agent):
         f = (h_weight * h) + (1 - h_weight) * 0
 
         initial_node = Node(initial_state, h=h, f=f)
+
         self.update_node_state_if_db(initial_node, initial_state[0])
-        self.open[initial_node] = (initial_node.f, initial_node.state[0])
+        self.open[initial_node] = (initial_node.f, initial_node.state)
 
         while len(self.open) > 0:
             current_node = self.open.popitem()[0]  # popitem():Remove and return the (key, priority) pair
@@ -170,10 +175,16 @@ class WeightedAStarAgent(Agent):
             # in case we found a final state
             if self.env.is_final_state(current_node.state):
                 (path, total_cost) = self.solution(current_node)
+                '''print(len(self.close))
+                for item in self.close:
+                    print(item)'''
                 return path, total_cost, self.expanded  # len(self.close)?
 
             self.expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
+                if succ_state == None:
+                    print("son of hole")
+                    continue
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
                 succ_node.h = self.calculate_heuristic(succ_node.state)
@@ -182,11 +193,11 @@ class WeightedAStarAgent(Agent):
 
                 # if it is goal but didnt collect all dragon balls, or is hole. i guess
                 # TODO: check if we need to add these to closed. meaning if we need to exapnd them
-                if terminated is True and self.env.is_final_state(succ_node.state) is False:
-                    continue
-                # maybe this line is useless
+                '''if terminated is True and self.env.is_final_state(succ_node.state) is False and cost != None:
+                    continue'''
+                '''# maybe this line is useless
                 if succ_node.state == current_node.state:
-                    continue
+                    continue'''
 
                 # if node is in close, no need to check the g again. heuristic is consistent
                 if succ_node.state in [item for item in self.close]:
@@ -194,13 +205,13 @@ class WeightedAStarAgent(Agent):
 
                 # now we need to see if the succ_node.state is in open or not
                 if succ_node.state not in [item.state for item in self.open.keys()]:
-                    self.open[succ_node] = (succ_node.f, succ_node.state[0])
+                    self.open[succ_node] = (succ_node.f, succ_node.state)
                 # if it is in open, check if f val is lower
                 else:
                     for item in self.open.keys():
                         if item.state == succ_node.state and item.f > succ_node.f:
                             self.open.pop(item)
-                            self.open[succ_node] = (succ_node.f, succ_node.state[0])
+                            self.open[succ_node] = (succ_node.f, succ_node.state)
                             break
 
         return None
