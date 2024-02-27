@@ -182,7 +182,6 @@ class WeightedAStarAgent(Agent):
             self.expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
                 if succ_state is None:
-                    print("son of hole")
                     continue
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
@@ -254,7 +253,7 @@ class AStarEpsilonAgent(Agent):
         for node in self.open.keys():
             if node.f <= (1 + epsilon) * min_f_val:
                 # https://piazza.com/class/lrurdsbmuiww0/post/111
-                focal[node] = (node.total_cost, node.state[0])
+                focal[node] = (node.total_cost, node.state)
         return focal
 
     def initialize(self, env) -> None:
@@ -271,8 +270,9 @@ class AStarEpsilonAgent(Agent):
         f = h + 0
         initial_node = Node(initial_state, h=h, f=f)
         self.update_node_state_if_db(initial_node, initial_state[0])
-        self.open[initial_node] = (initial_node.f, initial_node.state[0])
+        self.open[initial_node] = (initial_node.f, initial_node.state)
 
+        #TODO: make sure we expand g but not g successors. add a check
         while len(self.open) > 0:
             current_node = (self.compute_focal(epsilon)).popitem()[0]
             self.open.pop(current_node)
@@ -285,6 +285,8 @@ class AStarEpsilonAgent(Agent):
 
             self.expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
+                if succ_state is None:
+                    continue
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
                 succ_node.h = self.calculate_heuristic(succ_node.state)
@@ -304,13 +306,13 @@ class AStarEpsilonAgent(Agent):
 
                 # now we need to see if the succ_node.state is in open or not
                 if succ_node.state not in [item.state for item in self.open.keys()]:
-                    self.open[succ_node] = (succ_node.f, succ_node.state[0])
+                    self.open[succ_node] = (succ_node.f, succ_node.state)
                 # if it is in open, check if f val is lower
                 else:
                     for item in self.open.keys():
                         if item.state == succ_node.state and item.f > succ_node.f:
                             self.open.pop(item)
-                            self.open[succ_node] = (succ_node.f, succ_node.state[0])
+                            self.open[succ_node] = (succ_node.f, succ_node.state)
                             break
 
         return None
