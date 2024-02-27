@@ -175,14 +175,13 @@ class WeightedAStarAgent(Agent):
             # in case we found a final state
             if self.env.is_final_state(current_node.state):
                 (path, total_cost) = self.solution(current_node)
-                '''print(len(self.close))
-                for item in self.close:
-                    print(item)'''
+                for item in self.open.keys():
+                    print(item)
                 return path, total_cost, self.expanded  # len(self.close)?
 
             self.expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
-                if succ_state == None:
+                if succ_state is None:
                     print("son of hole")
                     continue
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
