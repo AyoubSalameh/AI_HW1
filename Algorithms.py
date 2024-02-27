@@ -60,6 +60,35 @@ class Agent:
         if curr_cell == self.env.d2[0]:
             node.state = (node.state[0], node.state[1], True)
 
+    def is_not_final_g(self, state: Tuple[int, bool, bool]) -> bool:
+        row, col = self.env.to_row_col(state)
+        return self.env.desc[row, col] == b"G" and not self.env.is_final_state(state)
+
+    def calculate_heuristic(self, state: Tuple[int, int, int]):
+        # getting the coordinates for each needed point.
+        srow, scol = self.env.to_row_col(state)
+        d1row, d1col = self.env.to_row_col(self.env.d1)
+        d2row, d2col = self.env.to_row_col(self.env.d2)
+        ret = np.inf
+
+        # d1 collected but d2 not
+        if state[1] is True and state[2] is False:
+            ret = min(abs(srow - d2row) + abs(scol - d2col), ret)
+        # the opposite
+        elif state[1] is False and state[2] is True:
+            ret = min(abs(srow - d1row) + abs(scol - d1col), ret)
+        # neither collected
+        elif state[1] is False and state[2] is False:
+            ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
+
+        else:
+            # goal is given as a list
+            for state in self.env.goals:
+                grow, gcol = self.env.to_row_col(state)
+                ret = min(ret, abs(srow - grow) + abs(scol - gcol))
+
+        return ret
+
 
 class BFSAgent(Agent):
     def __init__(self) -> None:
@@ -75,37 +104,30 @@ class BFSAgent(Agent):
 
     def search(self, env: DragonBallEnv) -> Tuple[List[int], float, int]:
         self.initialize(env)
-        # not sure if it is legal for the bool to be at the start, but just in case
         curr_state = self.env.get_initial_state()
         curr_node = Node(curr_state)
         self.update_node_state_if_db(curr_node, curr_state[0])
         self.open.append(curr_node)
-
+        expanded = 0
         while len(self.open) != 0:
             curr_node = self.open.pop(0)
-            # print("curr node:", curr_node)
             self.close.append(curr_node.state)
+            expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(curr_node.state).items():
-                # not adding to open in case we are stuck in a hole
                 if succ_state == None:
+                    # not expanding child of hole
                     continue
                 succ_node = Node(succ_state, action, cost, terminated, curr_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
 
+                if self.is_not_final_g(succ_node.parentNode.state) is True:
+                    # not expanding child of G that is not a solution
+                    continue
+
                 if (succ_node.state not in self.close) and (succ_node.state not in [item.state for item in self.open]):
                     if self.env.is_final_state(succ_node.state):
-                        # print("************FINAL STATE*************" + str(succ_node.state))
                         (path, total_cost) = self.solution(succ_node)
-                        return path, total_cost, len(self.close)
-
-                    # if we are in the same state, continue
-                    # if we are in cell number that is the same cell number as final state, continue
-                    # maybe we should change succ_state to succ_node.state
-                    #commented out, we get 123 expanded
-                    '''if succ_state == curr_node.state or (
-                            succ_state[0] in [item[0] for item in self.env.get_goal_states()]):
-                        continue
-'''
+                        return path, total_cost, expanded
                     self.open.append(succ_node)
 
         return None
@@ -117,7 +139,6 @@ class WeightedAStarAgent(Agent):
         self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
         self.close = set()  # close contains states
         self.expanded = 0
-        # might need to add more things
 
     def initialize(self, env) -> None:
         self.env = env
@@ -126,35 +147,6 @@ class WeightedAStarAgent(Agent):
         self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
         self.close = set()  # close contains states
         # might need to add more things
-
-    def calculate_heuristic(self, state: Tuple[int, int, int]):
-        # getting the coordinates for each needed point.
-        srow, scol = self.env.to_row_col(state)
-        d1row, d1col = self.env.to_row_col(self.env.d1)
-        d2row, d2col = self.env.to_row_col(self.env.d2)
-        ret = np.inf
-
-        # d1 collected but d2 not
-        if state[1] == True and state[2] == False:
-            ret = min(abs(srow - d2row) + abs(scol - d2col), ret)
-        # the opposite
-        elif state[1] == False and state[2] == True:
-            ret = min(abs(srow - d1row) + abs(scol - d1col), ret)
-        # neither collected
-        elif state[1] == False and state[2] == False:
-            ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
-
-        else:
-            # goal is given as a list
-            for state in self.env.goals:
-                grow, gcol = self.env.to_row_col(state)
-                ret = min(ret, abs(srow - grow) + abs(scol - gcol))
-
-        return ret
-
-    def is_hole(self, state: Tuple[int, bool, bool]) -> bool:
-        row, col = self.env.to_row_col(state)
-        return self.env.desc[row, col] == b"H"
 
     def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], float, int]:
         self.initialize(env)
@@ -175,8 +167,6 @@ class WeightedAStarAgent(Agent):
             # in case we found a final state
             if self.env.is_final_state(current_node.state):
                 (path, total_cost) = self.solution(current_node)
-                for item in self.open.keys():
-                    print(item)
                 return path, total_cost, self.expanded  # len(self.close)?
 
             self.expanded += 1
@@ -186,19 +176,14 @@ class WeightedAStarAgent(Agent):
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
                 succ_node.h = self.calculate_heuristic(succ_node.state)
-
                 succ_node.f = (h_weight * succ_node.h) + (1 - h_weight) * succ_node.total_cost
 
-                # if it is goal but didnt collect all dragon balls, or is hole. i guess
-                # TODO: check if we need to add these to closed. meaning if we need to exapnd them
-                '''if terminated is True and self.env.is_final_state(succ_node.state) is False and cost != None:
-                    continue'''
-                '''# maybe this line is useless
-                if succ_node.state == current_node.state:
-                    continue'''
+                if self.is_not_final_g(succ_node.parentNode.state) is True:
+                    # not expanding child of G that is not a solution
+                    continue
 
-                # if node is in close, no need to check the g again. heuristic is consistent
                 if succ_node.state in [item for item in self.close]:
+                    # if node is in close, no need to check the g again. heuristic is consistent
                     continue
 
                 # now we need to see if the succ_node.state is in open or not
@@ -221,31 +206,6 @@ class AStarEpsilonAgent(Agent):
         self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
         self.close = set()  # close contains states
         self.expanded = 0
-
-    def calculate_heuristic(self, state: Tuple[int, int, int]):
-        # getting the coordinates for each needed point.
-        srow, scol = self.env.to_row_col(state)
-        d1row, d1col = self.env.to_row_col(self.env.d1)
-        d2row, d2col = self.env.to_row_col(self.env.d2)
-        ret = np.inf
-
-        # d1 collected but d2 not
-        if state[1] == True and state[2] == False:
-            ret = min(abs(srow - d2row) + abs(scol - d2col), ret)
-        # the opposite
-        elif state[1] == False and state[2] == True:
-            ret = min(abs(srow - d1row) + abs(scol - d1col), ret)
-        # neither collected
-        elif state[1] == False and state[2] == False:
-            ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
-
-        else:
-            # goal is given as a list
-            for state in self.env.goals:
-                grow, gcol = self.env.to_row_col(state)
-                ret = min(ret, abs(srow - grow) + abs(scol - gcol))
-
-        return ret
 
     def compute_focal(self, epsilon) -> heapdict:
         min_f_val = self.open.peekitem()[0].f
@@ -272,7 +232,6 @@ class AStarEpsilonAgent(Agent):
         self.update_node_state_if_db(initial_node, initial_state[0])
         self.open[initial_node] = (initial_node.f, initial_node.state)
 
-        #TODO: make sure we expand g but not g successors. add a check
         while len(self.open) > 0:
             current_node = (self.compute_focal(epsilon)).popitem()[0]
             self.open.pop(current_node)
@@ -292,12 +251,8 @@ class AStarEpsilonAgent(Agent):
                 succ_node.h = self.calculate_heuristic(succ_node.state)
                 succ_node.f = succ_node.h + succ_node.total_cost
 
-                # if it is goal but didnt collect all dragon balls, or is hole. i guess
-                # TODO: check if we need to add these to closed. meaning if we need to exapnd them
-                if terminated is True and self.env.is_final_state(succ_node.state) is False:
-                    continue
-                # maybe this line is useless
-                if succ_node.state == current_node.state:
+                if self.is_not_final_g(succ_node.parentNode.state) is True:
+                    # not expanding child of G that is not a solution
                     continue
 
                 # if node is in close, no need to check the g again. heuristic is consistent
