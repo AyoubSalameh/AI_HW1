@@ -3,7 +3,7 @@ from collections import deque
 import numpy as np
 
 from DragonBallEnv import DragonBallEnv
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Set
 import heapdict
 
 
@@ -137,16 +137,15 @@ class WeightedAStarAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
         self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
-        self.close = set()  # close contains states
+        self.close = {}  # close is a dict key=state, val=node
         self.expanded = 0
 
     def initialize(self, env) -> None:
         self.env = env
         self.env.reset()
         self.expanded = 0
-        self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
-        self.close = set()  # close contains states
-        # might need to add more things
+        self.open = heapdict.heapdict()
+        self.close = {}
 
     def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], float, int]:
         self.initialize(env)
@@ -162,19 +161,24 @@ class WeightedAStarAgent(Agent):
 
         while len(self.open) > 0:
             current_node = self.open.popitem()[0]  # popitem():Remove and return the (key, priority) pair
-            self.close.add(current_node.state)
+            self.close[current_node.state] = current_node
 
             # in case we found a final state
             if self.env.is_final_state(current_node.state):
                 (path, total_cost) = self.solution(current_node)
-                return path, total_cost, self.expanded  # len(self.close)?
+                return path, total_cost, self.expanded
 
             self.expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
                 if succ_state is None:
                     continue
+
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
+
+                if succ_node.state == current_node.state:
+                    continue
+
                 succ_node.h = self.calculate_heuristic(succ_node.state)
                 succ_node.f = (h_weight * succ_node.h) + (1 - h_weight) * succ_node.total_cost
 
@@ -182,21 +186,26 @@ class WeightedAStarAgent(Agent):
                     # not expanding child of G that is not a solution
                     continue
 
-                if succ_node.state in [item for item in self.close]:
-                    # if node is in close, no need to check the g again. heuristic is consistent
-                    continue
-
-                # now we need to see if the succ_node.state is in open or not
-                if succ_node.state not in [item.state for item in self.open.keys()]:
+                in_open = succ_node.state in [item.state for item in self.open.keys()]
+                in_close = succ_node.state in self.close
+                if (not in_open) and (not in_close):
                     self.open[succ_node] = (succ_node.f, succ_node.state)
-                # if it is in open, check if f val is lower
-                else:
-                    for item in self.open.keys():
-                        if item.state == succ_node.state and item.f > succ_node.f:
-                            self.open.pop(item)
-                            self.open[succ_node] = (succ_node.f, succ_node.state)
-                            break
 
+                else:
+                    if in_open:
+                        # if it is in open, check if f val is lower
+                        for item in self.open.keys():
+                            if item.state == succ_node.state and item.f > succ_node.f:
+                                self.open.pop(item)
+                                self.open[succ_node] = (succ_node.f, succ_node.state)
+                                break
+                    else:
+                        # item is in close
+                        for item_state, item_node in self.close.items():
+                            if item_state == succ_node.state and item_node.f > succ_node.f:
+                                self.open[succ_node] = (succ_node.f, succ_node.state)
+                                self.close.pop(item_state)
+                                break
         return None
 
 
@@ -204,7 +213,7 @@ class AStarEpsilonAgent(Agent):
     def __init__(self) -> None:
         super().__init__()
         self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
-        self.close = set()  # close contains states
+        self.close = {}  # close is a dict key=state, val=node
         self.expanded = 0
 
     def compute_focal(self, epsilon) -> heapdict:
@@ -220,14 +229,16 @@ class AStarEpsilonAgent(Agent):
         self.env = env
         self.env.reset()
         self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
-        self.close = set()  # close contains states
+        self.close = {}  # close contains states
 
     def search(self, env: DragonBallEnv, epsilon: int) -> Tuple[List[int], float, int]:
         # in the notebook it is written they will not test the expanded here.
         self.initialize(env)
         initial_state = self.env.get_initial_state()
+
         h = self.calculate_heuristic(initial_state)
         f = h + 0
+
         initial_node = Node(initial_state, h=h, f=f)
         self.update_node_state_if_db(initial_node, initial_state[0])
         self.open[initial_node] = (initial_node.f, initial_node.state)
@@ -235,12 +246,12 @@ class AStarEpsilonAgent(Agent):
         while len(self.open) > 0:
             current_node = (self.compute_focal(epsilon)).popitem()[0]
             self.open.pop(current_node)
-            self.close.add(current_node.state)
+            self.close[current_node.state] = current_node
 
             # in case we found a final state
             if self.env.is_final_state(current_node.state):
                 (path, total_cost) = self.solution(current_node)
-                return path, total_cost, self.expanded  # len(self.close)?
+                return path, total_cost, self.expanded
 
             self.expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(current_node.state).items():
@@ -248,6 +259,10 @@ class AStarEpsilonAgent(Agent):
                     continue
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
+
+                if succ_node.state == current_node.state:
+                    continue
+
                 succ_node.h = self.calculate_heuristic(succ_node.state)
                 succ_node.f = succ_node.h + succ_node.total_cost
 
@@ -255,19 +270,24 @@ class AStarEpsilonAgent(Agent):
                     # not expanding child of G that is not a solution
                     continue
 
-                # if node is in close, no need to check the g again. heuristic is consistent
-                if succ_node.state in [item for item in self.close]:
-                    continue
-
-                # now we need to see if the succ_node.state is in open or not
-                if succ_node.state not in [item.state for item in self.open.keys()]:
+                in_open = succ_node.state in [item.state for item in self.open.keys()]
+                in_close = succ_node.state in self.close
+                if (not in_open) and (not in_close):
                     self.open[succ_node] = (succ_node.f, succ_node.state)
-                # if it is in open, check if f val is lower
-                else:
-                    for item in self.open.keys():
-                        if item.state == succ_node.state and item.f > succ_node.f:
-                            self.open.pop(item)
-                            self.open[succ_node] = (succ_node.f, succ_node.state)
-                            break
 
+                else:
+                    if in_open:
+                        # if it is in open, check if f val is lower
+                        for item in self.open.keys():
+                            if item.state == succ_node.state and item.f > succ_node.f:
+                                self.open.pop(item)
+                                self.open[succ_node] = (succ_node.f, succ_node.state)
+                                break
+                    else:
+                        # item is in close
+                        for item_state, item_node in self.close.items():
+                            if item_state == succ_node.state and item_node.f > succ_node.f:
+                                self.open[succ_node] = (succ_node.f, succ_node.state)
+                                self.close.pop(item_state)
+                                break
         return None
