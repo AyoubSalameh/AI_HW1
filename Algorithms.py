@@ -81,11 +81,11 @@ class Agent:
         elif state[1] is False and state[2] is False:
             ret = min(abs(srow - d1row) + abs(scol - d1col), abs(srow - d2row) + abs(scol - d2col))
 
-        else:
-            # goal is given as a list
-            for state in self.env.goals:
-                grow, gcol = self.env.to_row_col(state)
-                ret = min(ret, abs(srow - grow) + abs(scol - gcol))
+        #ELSE
+        # goal is given as a list
+        for state in self.env.goals:
+            grow, gcol = self.env.to_row_col(state)
+            ret = min(ret, abs(srow - grow) + abs(scol - gcol))
 
         return ret
 
@@ -176,6 +176,7 @@ class WeightedAStarAgent(Agent):
                 succ_node = Node(succ_state, action, cost, terminated, current_node)
                 self.update_node_state_if_db(succ_node, succ_state[0])
 
+
                 if succ_node.state == current_node.state:
                     continue
 
@@ -185,6 +186,7 @@ class WeightedAStarAgent(Agent):
                 if self.is_not_final_g(succ_node.parentNode.state) is True:
                     # not expanding child of G that is not a solution
                     continue
+
 
                 in_open = succ_node.state in [item.state for item in self.open.keys()]
                 in_close = succ_node.state in self.close
