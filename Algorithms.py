@@ -114,7 +114,7 @@ class BFSAgent(Agent):
             self.close.append(curr_node.state)
             expanded += 1
             for action, (succ_state, cost, terminated) in env.succ(curr_node.state).items():
-                if succ_state == None:
+                if succ_state is None:
                     # not expanding child of hole
                     continue
                 succ_node = Node(succ_state, action, cost, terminated, curr_node)
@@ -157,7 +157,9 @@ class WeightedAStarAgent(Agent):
         initial_node = Node(initial_state, h=h, f=f)
 
         self.update_node_state_if_db(initial_node, initial_state[0])
+        # secondary sort
         self.open[initial_node] = (initial_node.f, initial_node.state)
+        # self.open[initial_node] = (initial_node.f, initial_node.state[0])
 
         while len(self.open) > 0:
             current_node = self.open.popitem()[0]  # popitem():Remove and return the (key, priority) pair
@@ -191,7 +193,9 @@ class WeightedAStarAgent(Agent):
                 in_open = succ_node.state in [item.state for item in self.open.keys()]
                 in_close = succ_node.state in self.close
                 if (not in_open) and (not in_close):
+                    # secondary sort
                     self.open[succ_node] = (succ_node.f, succ_node.state)
+                    # self.open[succ_node] = (succ_node.f, succ_node.state[0])
 
                 else:
                     if in_open:
@@ -199,13 +203,17 @@ class WeightedAStarAgent(Agent):
                         for item in self.open.keys():
                             if item.state == succ_node.state and item.f > succ_node.f:
                                 self.open.pop(item)
+                                # secondary sort
                                 self.open[succ_node] = (succ_node.f, succ_node.state)
+                                # self.open[succ_node] = (succ_node.f, succ_node.state[0])
                                 break
                     else:
                         # item is in close
                         for item_state, item_node in self.close.items():
                             if item_state == succ_node.state and item_node.f > succ_node.f:
+                                # secondary sort
                                 self.open[succ_node] = (succ_node.f, succ_node.state)
+                                # self.open[succ_node] = (succ_node.f, succ_node.state[0])
                                 self.close.pop(item_state)
                                 break
         return [], 0, 0
@@ -224,7 +232,9 @@ class AStarEpsilonAgent(Agent):
         for node in self.open.keys():
             if node.f <= (1 + epsilon) * min_f_val:
                 # https://piazza.com/class/lrurdsbmuiww0/post/111
+                # secondary sort
                 focal[node] = (node.total_cost, node.state)
+                # focal[node] = (node.total_cost, node.state[0])
         return focal
 
     def initialize(self, env) -> None:
@@ -244,7 +254,9 @@ class AStarEpsilonAgent(Agent):
 
         initial_node = Node(initial_state, h=h, f=f)
         self.update_node_state_if_db(initial_node, initial_state[0])
+        # secondary sort
         self.open[initial_node] = (initial_node.f, initial_node.state)
+        # self.open[initial_node] = (initial_node.f, initial_node.state[0])
 
         while len(self.open) > 0:
             current_node = (self.compute_focal(epsilon)).popitem()[0]
@@ -276,7 +288,9 @@ class AStarEpsilonAgent(Agent):
                 in_open = succ_node.state in [item.state for item in self.open.keys()]
                 in_close = succ_node.state in self.close
                 if (not in_open) and (not in_close):
+                    # secondary sort
                     self.open[succ_node] = (succ_node.f, succ_node.state)
+                    # self.open[succ_node] = (succ_node.f, succ_node.state[0])
 
                 else:
                     if in_open:
@@ -284,13 +298,18 @@ class AStarEpsilonAgent(Agent):
                         for item in self.open.keys():
                             if item.state == succ_node.state and item.f > succ_node.f:
                                 self.open.pop(item)
+                                # secondary sort
                                 self.open[succ_node] = (succ_node.f, succ_node.state)
+                                # self.open[succ_node] = (succ_node.f, succ_node.state[0])
                                 break
                     else:
                         # item is in close
                         for item_state, item_node in self.close.items():
                             if item_state == succ_node.state and item_node.f > succ_node.f:
+                                # secondary sort
                                 self.open[succ_node] = (succ_node.f, succ_node.state)
+                                # self.open[succ_node] = (succ_node.f, succ_node.state[0])
+
                                 self.close.pop(item_state)
                                 break
         return [], 0, 0
