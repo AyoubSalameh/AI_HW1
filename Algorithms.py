@@ -102,7 +102,7 @@ class BFSAgent(Agent):
         self.open = []
         self.close = []
 
-    def search(self, env: DragonBallEnv) -> Tuple[List[int], float, int]:
+    def search(self, env: DragonBallEnv) -> Tuple[List[int], int, int]:
         self.initialize(env)
         curr_state = self.env.get_initial_state()
         curr_node = Node(curr_state)
@@ -130,7 +130,7 @@ class BFSAgent(Agent):
                         return path, total_cost, expanded
                     self.open.append(succ_node)
 
-        return None
+        return [], 0, 0
 
 
 class WeightedAStarAgent(Agent):
@@ -147,7 +147,7 @@ class WeightedAStarAgent(Agent):
         self.open = heapdict.heapdict()
         self.close = {}
 
-    def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], float, int]:
+    def search(self, env: DragonBallEnv, h_weight) -> Tuple[List[int], int, int]:
         self.initialize(env)
         initial_state = self.env.get_initial_state()
 
@@ -208,7 +208,7 @@ class WeightedAStarAgent(Agent):
                                 self.open[succ_node] = (succ_node.f, succ_node.state)
                                 self.close.pop(item_state)
                                 break
-        return None
+        return [], 0, 0
 
 
 class AStarEpsilonAgent(Agent):
@@ -233,7 +233,7 @@ class AStarEpsilonAgent(Agent):
         self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
         self.close = {}  # close contains states
 
-    def search(self, env: DragonBallEnv, epsilon: int) -> Tuple[List[int], float, int]:
+    def search(self, env: DragonBallEnv, epsilon: int) -> Tuple[List[int], int, int]:
         # in the notebook it is written they will not test the expanded here.
         self.initialize(env)
         initial_state = self.env.get_initial_state()
@@ -292,4 +292,4 @@ class AStarEpsilonAgent(Agent):
                                 self.open[succ_node] = (succ_node.f, succ_node.state)
                                 self.close.pop(item_state)
                                 break
-        return None
+        return [], 0, 0
