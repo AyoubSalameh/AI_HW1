@@ -232,6 +232,7 @@ class AStarEpsilonAgent(Agent):
         self.env.reset()
         self.open = heapdict.heapdict()  # open contains nodes hd[Node1] = priority1
         self.close = {}  # close contains states
+        self.expanded = 0
 
     def search(self, env: DragonBallEnv, epsilon: int) -> Tuple[List[int], int, int]:
         # in the notebook it is written they will not test the expanded here.
